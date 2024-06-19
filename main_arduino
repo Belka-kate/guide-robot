@@ -1,0 +1,186 @@
+#include <Servo.h>
+#include <math.h>
+Servo rotate;
+
+
+//int R1 = 31;
+//int R2 = 48;
+int R1 = 39;
+int R2 = 39;
+float step = 0.525;
+
+
+double way[] = {0, 100, 90, 100, -90, 100, 0};
+
+///
+int encoder = 49;
+
+
+int motor11 = 7;
+int motor12 = 6;
+int motor21 = 5;
+int motor22 = 4;
+
+
+int ena1 = 55;
+int enb1 = 54;
+
+
+int motor31 = 8;
+int motor32 = 9;
+int motor42 = 10;
+int motor41 = 11;
+
+
+int ena2 = 57;
+int enb2 = 56;
+
+
+int trigPin5 = 35;
+int echoPin5 = 34;
+int trigPin4 = 35;
+int echoPin4 = 34;
+int trigPin3 = 27;
+int echoPin3 = 26;
+int trigPin2 = 29;
+int echoPin2 = 28;
+int trigPin1 = 32;
+int echoPin1 = 33;
+
+
+
+
+void setup() {
+ Serial.begin(9600);
+
+
+ pinMode(trigPin1, OUTPUT);
+ pinMode(echoPin1, INPUT);
+ pinMode(trigPin2, OUTPUT);
+ pinMode(echoPin2, INPUT);
+ pinMode(trigPin3, OUTPUT);
+ pinMode(echoPin3, INPUT);
+ pinMode(trigPin4, OUTPUT);
+ pinMode(echoPin4, INPUT);
+ pinMode(trigPin5, OUTPUT);
+ pinMode(echoPin5, INPUT);
+ pinMode(motor11, OUTPUT);
+ pinMode(motor12, OUTPUT);
+ pinMode(motor21, OUTPUT);
+ pinMode(motor22, OUTPUT);
+ pinMode(motor31, OUTPUT);
+ pinMode(motor32, OUTPUT);
+ pinMode(motor41, OUTPUT);
+ pinMode(motor42, OUTPUT);
+ pinMode(ena1, OUTPUT);
+ pinMode(enb1, OUTPUT);
+ pinMode(ena2, OUTPUT);
+ pinMode(enb2, OUTPUT);
+ pinMode(encoder, INPUT);
+ rotate.attach(2);
+
+
+ analogWrite(ena1, 130);
+ analogWrite(enb1, 130);
+ analogWrite(ena2, 130);
+ analogWrite(enb2, 130);
+
+
+
+
+ rotate.write(110);
+ start_motor(0);
+ for (int i = 1; i < sizeof(way)/sizeof(way[0]) - 1; i +=2){
+   encoder_work(way[i] - extra_angel(way[i-1]) - extra_angel(way[i+1]) - 20);
+  
+   if (way[i+1] < 0){
+     rotate.write(140);
+     encoder_work(R1 * radians(-1 * way[i+1]));
+   }
+   else {
+     rotate.write(80);
+     encoder_work(R2 * radians(way[i+1]));
+   }
+   rotate.write(110);
+ }
+ start_motor(2);
+}
+
+
+void loop() {}
+
+
+
+
+double extra_angel(double a){
+ double r;
+ if (a < 0){
+   r = 48;
+   a = a * -1;
+ }
+ else {
+   r = 31;
+ }
+ //in sm
+ a = radians(a)/2;
+ return r * tan(a);
+}
+
+
+//0 - forward 1 - backward 2 - stop
+void start_motor(int back_or_not){
+ int a, b;
+ if(back_or_not == 0){
+   a = 0;
+   b = 1;
+ }
+ else if(back_or_not == 1){
+   b = 0;
+   a = 1;
+ }
+ else{
+   a = 0;
+   b = 0;
+ }
+  digitalWrite(motor12, a);
+  digitalWrite(motor11, b);
+  digitalWrite(motor22, a);
+  digitalWrite(motor21, b);
+  digitalWrite(motor32, a);
+  digitalWrite(motor31, b);
+  digitalWrite(motor42, a);
+  digitalWrite(motor41, b);
+
+
+
+
+}
+
+
+void encoder_work(float length){
+ int counter = 0;
+ while (length > counter * step){
+   int flag = digitalRead(encoder);
+   while (flag == digitalRead(encoder)){
+     delay(0);
+   }
+   counter += 1;
+ }
+}
+
+
+//считывание значений с ультразвука и перевод в см
+int Ultrasound(int trigPin, int echoPin) {
+int duration, distance;
+// для большей точности установим значение LOW на пине Trig
+digitalWrite(trigPin, LOW);
+delayMicroseconds(2); // Теперь установим высокий уровень на пине Trig
+digitalWrite(trigPin, HIGH);// Подождем 10 μs
+delayMicroseconds(10);
+digitalWrite(trigPin, LOW);
+ duration = pulseIn(echoPin, HIGH); // Рассчитаем расстояние
+distance = duration / 58; // Выведем значение в Serial Monitor
+
+
+return distance;
+}

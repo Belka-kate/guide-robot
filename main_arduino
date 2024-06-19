@@ -1,7 +1,19 @@
 #include <Servo.h>
 #include <math.h>
 Servo rotate;
-//hello world
+
+#define ROUTE_PERIOD 1 
+uint32_t tmr_route;  
+#define BUTTON_PERIOD 1 
+uint32_t tmr_button;     
+#define ULTRASOUND_PERIOD 1 
+uint32_t tmr_ultrasound;   
+
+int count_route = 1; //for following the route
+int counter = 0; //inner
+bool end_route = false;
+bool press_button = false; 
+bool obstacle = false;
 
 //int R1 = 31;
 //int R2 = 48;
@@ -11,6 +23,7 @@ float step = 0.525;
 
 
 double way[] = {0, 100, 90, 100, -90, 100, 0};
+
 
 ///
 int encoder = 49;
@@ -22,7 +35,7 @@ int motor21 = 5;
 int motor22 = 4;
 
 
-int ena1 = 55;
+int ena1 = 55; //speed
 int enb1 = 54;
 
 
@@ -36,7 +49,7 @@ int ena2 = 57;
 int enb2 = 56;
 
 
-int trigPin5 = 35;
+int trigPin5 = 35; //for obstacles
 int echoPin5 = 34;
 int trigPin4 = 35;
 int echoPin4 = 34;
@@ -47,13 +60,13 @@ int echoPin2 = 28;
 int trigPin1 = 32;
 int echoPin1 = 33;
 
-
+int button = 12;
 
 
 void setup() {
  Serial.begin(9600);
 
-
+//set up mode for everything
  pinMode(trigPin1, OUTPUT);
  pinMode(echoPin1, INPUT);
  pinMode(trigPin2, OUTPUT);
@@ -77,39 +90,86 @@ void setup() {
  pinMode(ena2, OUTPUT);
  pinMode(enb2, OUTPUT);
  pinMode(encoder, INPUT);
+ pinMode(button, INPUT);
  rotate.attach(2);
-
 
  analogWrite(ena1, 130);
  analogWrite(enb1, 130);
  analogWrite(ena2, 130);
  analogWrite(enb2, 130);
 
-
-
-
- rotate.write(110);
- start_motor(0);
- for (int i = 1; i < sizeof(way)/sizeof(way[0]) - 1; i +=2){
-   encoder_work(way[i] - extra_angel(way[i-1]) - extra_angel(way[i+1]) - 20);
-  
-   if (way[i+1] < 0){
-     rotate.write(140);
-     encoder_work(R1 * radians(-1 * way[i+1]));
-   }
-   else {
-     rotate.write(80);
-     encoder_work(R2 * radians(way[i+1]));
-   }
-   rotate.write(110);
- }
- start_motor(2);
+//remaking way for better understanding
+for (int i = 0; i <= sizeof(way)/sizeof(way[0]) - 1; i += 1){
+  if(i % 2 == 1){
+    way[i] = way[i] - extra_angel(way[i-1]) - extra_angel(way[i+1]);
+  }else{
+    if (way[i+1] < 0){
+     way[i] = R1 * radians(-1 * way[i]);
+    }
+    else {
+     way[i] = R2 * radians(way[i]);
+    }
+  }
 }
 
+//wait for sign to start, settings to start and start moving
+while(digitalRead(button) == 0){
+  delay(0);
+}
+press_button = true;
+ rotate.write(110);
+ start_motor(0);
 
-void loop() {}
+}
 
+void loop() {
+  if(count_route >= sizeof(way)/sizeof(way[0])){
+    end_route = true;
+    rotate.write(110);
+    start_motor(2);
+  }
 
+  if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false) {  
+    tmr_route = millis();                   
+    encoder_work(counter);
+    counter +=1;
+    if(counter * step >= way[count_route]){
+      if(count_route % 2 == 1){
+        turning(0);
+      }else if(way[count_route+1] > 0){
+        turning(1);
+      }
+      else{
+        turning(-1);
+      }
+      count_route += 1;
+    }
+  }  
+  if (millis() - tmr_button >= BUTTON_PERIOD) {  
+    tmr_button = millis();
+    if (digitalRead(button) == 0){
+      press_button = false;                  
+    }else{
+      press_button = true;
+    }
+  }
+  if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD) {  
+    tmr_ultrasound = millis();
+    if (Ultrasound(trigPin3, echoPin3) > 100){
+      obstacle = false;
+      turning(0);
+    }else{
+      obstacle = true;
+      int right_ultrasound = Ultrasound(trigPin5, echoPin5);
+      int left_ultrasound = Ultrasound(trigPin1, echoPin1);
+      if(right_ultrasound >= left_ultrasound){
+        turning(1);
+      }else{
+        turning(-1);
+      }
+    }
+  }
+}
 
 
 double extra_angel(double a){
@@ -150,37 +210,39 @@ void start_motor(int back_or_not){
   digitalWrite(motor31, b);
   digitalWrite(motor42, a);
   digitalWrite(motor41, b);
-
-
-
-
 }
 
+//-1 - left 80 0 - forward 110 1 - right 140
+void turning(int where){
+  if(where == -1){
+     rotate.write(80);
+  }else if(where == 0){
+     rotate.write(110);
+  }else{
+     rotate.write(140);
+  }
+}
 
-void encoder_work(float length){
- int counter = 0;
- while (length > counter * step){
-   int flag = digitalRead(encoder);
-   while (flag == digitalRead(encoder)){
-     delay(0);
-   }
-   counter += 1;
- }
+void encoder_work(int counter){
+  int flag = digitalRead(encoder);
+  while (flag == digitalRead(encoder)){
+   delay(0);
+  }
+  counter += 1;
 }
 
 
 //считывание значений с ультразвука и перевод в см
 int Ultrasound(int trigPin, int echoPin) {
-int duration, distance;
-// для большей точности установим значение LOW на пине Trig
-digitalWrite(trigPin, LOW);
-delayMicroseconds(2); // Теперь установим высокий уровень на пине Trig
-digitalWrite(trigPin, HIGH);// Подождем 10 μs
-delayMicroseconds(10);
-digitalWrite(trigPin, LOW);
- duration = pulseIn(echoPin, HIGH); // Рассчитаем расстояние
-distance = duration / 58; // Выведем значение в Serial Monitor
-
-
-return distance;
+  int duration, distance;
+  // для большей точности установим значение LOW на пине Trig
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2); // Теперь установим высокий уровень на пине Trig
+  digitalWrite(trigPin, HIGH);// Подождем 10 μs
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH); // Рассчитаем расстояние
+  distance = duration / 58; // Выведем значение в Serial Monitor
+  
+  return distance;
 }

@@ -8,19 +8,25 @@ uint32_t tmr_route;
 uint32_t tmr_button;     
 #define ULTRASOUND_PERIOD 1 
 uint32_t tmr_ultrasound;   
+#define TRAFFICLIGHT_PERIOD 100 
+uint32_t tmr_trafficlight;
 
 int count_route = 1; //for following the route
 int counter = 0; //inner
+
 bool end_route = false;
 bool press_button = false; 
 bool obstacle = false;
+bool red_color = false;
+bool sound = false;//for sound with obstacles
+bool sound1 = false;//for sound with traffic lights
 
 //int R1 = 31;
 //int R2 = 48;
 int R1 = 39;
 int R2 = 39;
 float step = 0.525;
-
+String data;
 
 double way[] = {0, 100, 90, 100, -90, 100, 0};
 
@@ -61,11 +67,12 @@ int trigPin1 = 32;
 int echoPin1 = 33;
 
 int button = 12;
+int piezo = 13;
 
 
 void setup() {
  Serial.begin(9600);
-
+ 
 //set up mode for everything
  pinMode(trigPin1, OUTPUT);
  pinMode(echoPin1, INPUT);
@@ -91,6 +98,7 @@ void setup() {
  pinMode(enb2, OUTPUT);
  pinMode(encoder, INPUT);
  pinMode(button, INPUT);
+
  rotate.attach(2);
 
  analogWrite(ena1, 130);
@@ -123,13 +131,15 @@ press_button = true;
 }
 
 void loop() {
+
   if(count_route >= sizeof(way)/sizeof(way[0])){
     end_route = true;
     rotate.write(110);
     start_motor(2);
+    tone(piezo, 1000, 800);
   }
 
-  if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false) {  
+  if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false and press_button == true and obstacle == false and red_color == false) {  
     tmr_route = millis();                   
     encoder_work(counter);
     counter +=1;
@@ -145,21 +155,31 @@ void loop() {
       count_route += 1;
     }
   }  
-  if (millis() - tmr_button >= BUTTON_PERIOD) {  
+  if (millis() - tmr_button >= BUTTON_PERIOD and end_route == false) {  
     tmr_button = millis();
     if (digitalRead(button) == 0){
-      press_button = false;                  
+      press_button = false;       
+      start_motor(2);
+      tone(piezo, 1000);          
     }else{
       press_button = true;
+      start_motor(0);
+      noTone(piezo);
     }
   }
-  if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD) {  
+  if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {  
     tmr_ultrasound = millis();
     if (Ultrasound(trigPin3, echoPin3) > 100){
       obstacle = false;
       turning(0);
+      
+      sound = false;
     }else{
       obstacle = true;
+      if(sound == false){
+         tone(piezo, 1500, 500);
+         sound = true;
+      }
       int right_ultrasound = Ultrasound(trigPin5, echoPin5);
       int left_ultrasound = Ultrasound(trigPin1, echoPin1);
       if(right_ultrasound >= left_ultrasound){
@@ -169,6 +189,28 @@ void loop() {
       }
     }
   }
+  /*
+  if (millis() - tmr_trafficlight >= TRAFFICLIGHT_PERIOD and end_route == false and press_button == true) {  
+    tmr_trafficlight = millis();
+    if (Serial.  available()> 0){
+      data = Serial.readStringUntil('\n');
+      Serial.print("You sent me: ");
+      Serial.println(data);
+      //0 - red 1 - green 2 - nothing
+      if(data == "0"){
+        start_motor(2);
+        red_color = true;
+        if(sound1 == false){
+          tone(piezo, 1300, 100);
+          sound1 = true;
+        }
+      }else{
+        start_motor(0);
+        red_color = false;
+        sound1 = false;
+      }
+    }
+  }*/
 }
 
 
@@ -186,6 +228,10 @@ double extra_angel(double a){
  return r * tan(a);
 }
 
+/*shutup 1 - stop, 0-start
+void piez_work(int shutup, int volume){
+  
+}*/
 
 //0 - forward 1 - backward 2 - stop
 void start_motor(int back_or_not){
@@ -229,6 +275,7 @@ void encoder_work(int counter){
    delay(0);
   }
   counter += 1;
+  return;
 }
 
 

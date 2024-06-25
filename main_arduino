@@ -54,11 +54,10 @@ int motor41 = 11;
 int ena2 = 57;
 int enb2 = 56;
 
-
-int trigPin5 = 35; //for obstacles
+int trigPin5 = 35; //for obstacles 
 int echoPin5 = 34;
-int trigPin4 = 35;
-int echoPin4 = 34;
+int trigPin4 = 30;
+int echoPin4 = 31;
 int trigPin3 = 27;
 int echoPin3 = 26;
 int trigPin2 = 29;
@@ -121,12 +120,14 @@ for (int i = 0; i <= sizeof(way)/sizeof(way[0]) - 1; i += 1){
 }
 
 //wait for sign to start, settings to start and start moving
+press_button = true;
+turning(0);
+Serial.println(rotate.read());
 while(digitalRead(button) == 0){
   delay(0);
 }
-press_button = true;
- rotate.write(110);
- start_motor(0);
+
+start_motor(0);
 
 }
 

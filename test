@@ -1,0 +1,134 @@
+#include <Servo.h>
+#include <math.h>
+Servo rotate;
+
+#define ROUTE_PERIOD 1
+uint32_t tmr_route;
+#define BUTTON_PERIOD 1
+uint32_t tmr_button;
+#define ULTRASOUND_PERIOD 1
+uint32_t tmr_ultrasound;
+#define TRAFFICLIGHT_PERIOD 100
+uint32_t tmr_trafficlight;
+
+int count_route = 1; //for following the route
+int counter = 0; //inner
+
+bool end_route = false;
+bool press_button = false;
+bool obstacle = false;
+bool red_color = false;
+bool sound = false;//for sound with obstacles
+bool sound1 = false;//for sound with traffic lights
+
+//int R1 = 31;
+//int R2 = 48;
+int R1 = 39;
+int R2 = 39;
+float step = 0.525;
+String data;
+
+//double way[] = {0, 100, 90, 100, -90, 100, 0};
+double way[] = {0, 1000, 0};
+
+///
+int encoder = 49;
+
+
+int motor11 = 7;
+int motor12 = 6;
+int motor21 = 5;
+int motor22 = 4;
+
+
+int ena1 = 45; //speed
+int enb1 = 3;
+
+
+int motor31 = 8;
+int motor32 = 9;
+int motor42 = 10;
+int motor41 = 11;
+
+
+int ena2 = 46;
+int enb2 = 44;
+
+/*int trigPin5 = 35; //for obstacles
+int echoPin5 = 34;
+int trigPin4 = 30;
+int echoPin4 = 31;
+int trigPin3 = 27;
+int echoPin3 = 26;
+int trigPin2 = 29;
+int echoPin2 = 28;
+int trigPin1 = 32;
+int echoPin1 = 33;*/
+
+int trigPin2 = 30;
+int echoPin2 = 31;
+int trigPin4 = 27;
+int echoPin4 = 26;
+int trigPin3 = 29;
+int echoPin3 = 28;
+
+int button = 12;
+int piezo = 13;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+
+  //set up mode for everything
+  pinMode(trigPin1, OUTPUT);
+  pinMode(echoPin1, INPUT);
+  pinMode(trigPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
+  pinMode(trigPin3, OUTPUT);
+  pinMode(echoPin3, INPUT);
+  pinMode(trigPin4, OUTPUT);
+  pinMode(echoPin4, INPUT);
+  pinMode(trigPin5, OUTPUT);
+  pinMode(echoPin5, INPUT);
+  pinMode(motor11, OUTPUT);
+  pinMode(motor12, OUTPUT);
+  pinMode(motor21, OUTPUT);
+  pinMode(motor22, OUTPUT);
+  pinMode(motor31, OUTPUT);
+  pinMode(motor32, OUTPUT);
+  pinMode(motor41, OUTPUT);
+  pinMode(motor42, OUTPUT);
+  pinMode(ena1, OUTPUT);
+  pinMode(enb1, OUTPUT);
+  pinMode(ena2, OUTPUT);
+  pinMode(enb2, OUTPUT);
+  pinMode(encoder, INPUT);
+  pinMode(button, INPUT);
+
+  rotate.attach(2);
+
+  analogWrite(ena1, 130);
+  analogWrite(enb1, 130);
+  analogWrite(ena2, 130);
+  analogWrite(enb2, 130);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  Serial.println(Ultrasound(trigPin4, echoPin4));
+
+}
+
+int Ultrasound(int trigPin, int echoPin) {
+  int duration, distance;
+  // для большей точности установим значение LOW на пине Trig
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2); // Теперь установим высокий уровень на пине Trig
+  digitalWrite(trigPin, HIGH);// Подождем 10 μs
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH); // Рассчитаем расстояние
+  distance = duration / 58; // Выведем значение в Serial Monitor
+
+  return distance;
+}

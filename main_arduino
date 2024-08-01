@@ -67,12 +67,12 @@ int echoPin1 = 33;*/
 
 int trigPin5 = 35; //for obstacles
 int echoPin5 = 34;
-int trigPin2 = 30;
-int echoPin2 = 31;
+int trigPin3 = 30;
+int echoPin3 = 31;
 int trigPin4 = 27;
 int echoPin4 = 26;
-int trigPin3 = 29;
-int echoPin3 = 28;
+int trigPin2 = 29;
+int echoPin2 = 28;
 int trigPin1 = 32;
 int echoPin1 = 33;
 

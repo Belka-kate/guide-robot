@@ -10,3 +10,5 @@ Logic of wroking:
 -Sensors discover and avoid obstacles
 -Robot signs abot reaching destination
 
+This code is only for the robot so for correct working it requires to be loaded to the robot
+

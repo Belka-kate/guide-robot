@@ -41,7 +41,7 @@ int motor21 = 5;
 int motor22 = 4;
 
 
-int ena1 = 45; //speed
+int ena1 = 46; //speed
 int enb1 = 3;
 
 
@@ -143,6 +143,8 @@ void setup() {
 }
 
 void loop() {
+  change_speed(160);
+  
 
   if (count_route >= sizeof(way) / sizeof(way[0])) {
     end_route = true;
@@ -307,4 +309,8 @@ int Ultrasound(int trigPin, int echoPin) {
   distance = duration / 58; // Выведем значение в Serial Monitor
 
   return distance;
+}
+
+void change_speed(int speed){
+  analogWrite(ena1, speed);
 }

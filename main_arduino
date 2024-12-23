@@ -36,14 +36,14 @@ double way[] = {0, 1000, 0};
 int encoder = 49;
 
 
-int motor11 = 7;
-int motor12 = 6;
-int motor21 = 5;
-int motor22 = 4;
+int motor11 = 41;
+int motor12 = 39;
+int motor21 = 37;
+int motor22 = 35;
 
 
-int ena1 = 44; //speed
-int enb1 = 45;
+int ena1 = 4; //speed
+int enb1 = 5;
 
 
 int motor31 = 8;
@@ -52,21 +52,21 @@ int motor42 = 10;
 int motor41 = 11;
 
 
-int ena2 = 46;
+int ena2 = 6;
 int enb2 = 3;
 
 int pin_res = A0; //потенциометр для регулирвока скорости
 
 /*int trigPin5 = 35; //for obstacles
-int echoPin5 = 34;
-int trigPin4 = 30;
-int echoPin4 = 31;
-int trigPin3 = 27;
-int echoPin3 = 26;
-int trigPin2 = 29;
-int echoPin2 = 28;
-int trigPin1 = 32;
-int echoPin1 = 33;*/
+  int echoPin5 = 34;
+  int trigPin4 = 30;
+  int echoPin4 = 31;
+  int trigPin3 = 27;
+  int echoPin3 = 26;
+  int trigPin2 = 29;
+  int echoPin2 = 28;
+  int trigPin1 = 32;
+  int echoPin1 = 33;*/
 
 int trigPin5 = 35; //for obstacles
 int echoPin5 = 34;
@@ -110,7 +110,7 @@ void setup() {
   pinMode(ena2, OUTPUT);
   pinMode(enb2, OUTPUT);
   pinMode(encoder, INPUT);
-  pinMode(button, INPUT);
+  pinMode(button, INPUT_PULLUP);
 
   rotate.attach(2);
 
@@ -137,31 +137,34 @@ void setup() {
   press_button = true;
   turning(0);
   Serial.println(rotate.read());
+
   while (digitalRead(button) == 0) {
+
     delay(0);
   }
-
   start_motor(3);
-
 }
 
 void loop() {
   change_speed(); //changing speed according to the значения потенциометра
 
-  //checking if route is over or not, stopping and giving a signal 
+  //checking if route is over or not, stopping and giving a signal
   if (count_route >= sizeof(way) / sizeof(way[0])) {
     end_route = true;
-   turning(0);
+    turning(0);
     start_motor(2);
     tone(piezo, 1000, 800);
   }
-
+  //Serial.println(press_button);
   //main function of driving and turning if it is reqeured
   //функция езды по маршруту работает при условии зажатой кнопкиб незаконченного маршрута,отсутствия препятствий и светофора
-  if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false and press_button == true and obstacle == false and red_color == false) {
+  if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false and press_button == true /*and obstacle == false and red_color == false*/) {
     tmr_route = millis();
+    // Serial.println("2");
     encoder_work(counter);
+    //Serial.println("3");
     counter += 1;
+
     if (counter * step >= way[count_route]) {
       if (count_route % 2 == 1) {
         turning(0);
@@ -174,51 +177,51 @@ void loop() {
       count_route += 1;
     }
   }
+
+
   //function for checking is button held or not
   //функция проверки кнопки работает при незаконченном маршруте
   if (millis() - tmr_button >= BUTTON_PERIOD and end_route == false) {
     tmr_button = millis();
-    if (digitalRead(button) == 0) {
+    if (!digitalRead(button) == 0) {
       press_button = false;
       start_motor(2);
       //turning(0);
       tone(piezo, 1000);
     } else {
-      if (red_color == false) {
-        press_button = true;
-        start_motor(3);
-        noTone(piezo);
-      }
+      press_button = true;
+      start_motor(3);
+      noTone(piezo);
 
     }
   }
   //function for avoiding obstacles
   //функция обнаружения препятствий работает при зажатой кнопкиб незаконченного маршрута
-  if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {
-    tmr_ultrasound = millis();
-    if (Ultrasound(trigPin3, echoPin3) > 100) {
-      obstacle = false;
-      turning(0);
+   /*if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {
+     tmr_ultrasound = millis();
+     if (Ultrasound(trigPin3, echoPin3) > 100) {
+       obstacle = false;
+       turning(0);
 
-      sound = false;
-    } else {
-      obstacle = true;
-      if (sound == false) {
-        tone(piezo, 1500, 500);
-        sound = true;
-      }
-      int right_ultrasound = Ultrasound(trigPin4, echoPin4);
-      int left_ultrasound = Ultrasound(trigPin2, echoPin2);
-      if (right_ultrasound >= left_ultrasound) {
-        turning(1);
-      } else {
-        turning(-1);
-      }
-    }
-  }
+       sound = false;
+     } else {
+       obstacle = true;
+       if (sound == false) {
+         tone(piezo, 1500, 500);
+         sound = true;
+       }
+       int right_ultrasound = Ultrasound(trigPin4, echoPin4);
+       int left_ultrasound = Ultrasound(trigPin2, echoPin2);
+       if (right_ultrasound >= left_ultrasound) {
+         turning(1);
+       } else {
+         turning(-1);
+       }
+     }
+    }*/
   //funcrion of recognising traffic lights
   //функция светофора работает при незаконченном маршруте и зажатой кнопки
-  if (millis() - tmr_trafficlight >= TRAFFICLIGHT_PERIOD and end_route == false and press_button == true) {
+  /*if (millis() - tmr_trafficlight >= TRAFFICLIGHT_PERIOD and end_route == false and press_button == true) {
     tmr_trafficlight = millis();
     if (Serial.  available() > 0) {
       data = Serial.readStringUntil('\n');
@@ -238,7 +241,7 @@ void loop() {
         sound1 = false;
       }
     }
-  }
+    }*/
 }
 
 //remaking angle to the suitable format
@@ -298,6 +301,7 @@ void turning(int where) {
 void encoder_work(int counter) {
   int flag = digitalRead(encoder);
   while (flag == digitalRead(encoder)) {
+    Serial.println(flag);
     delay(0);
   }
   counter += 1;
@@ -320,8 +324,8 @@ int Ultrasound(int trigPin, int echoPin) {
   return distance;
 }
 
-void change_speed(){ // считывает значение с потенциометра, преобразует его в нужный формат и 
-                    //меняет скорость у всех моторов
+void change_speed() { // считывает значение с потенциометра, преобразует его в нужный формат и
+  //меняет скорость у всех моторов
   int res = analogRead(pin_res);
   int sp = map(res, 0, 1023, 0, 255);
   analogWrite(ena1, sp);

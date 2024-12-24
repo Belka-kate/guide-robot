@@ -57,27 +57,18 @@ int enb2 = 3;
 
 int pin_res = A0; //потенциометр для регулирвока скорости
 
-/*int trigPin5 = 35; //for obstacles
-  int echoPin5 = 34;
-  int trigPin4 = 30;
-  int echoPin4 = 31;
-  int trigPin3 = 27;
-  int echoPin3 = 26;
-  int trigPin2 = 29;
-  int echoPin2 = 28;
-  int trigPin1 = 32;
-  int echoPin1 = 33;*/
+int trigPin5 = 30; //for obstacles
+int echoPin5 = 31;
+int trigPin1 = 30;
+int echoPin1 = 31;
 
-int trigPin5 = 35; //for obstacles
-int echoPin5 = 34;
-int trigPin3 = 30;
-int echoPin3 = 31;
+int trigPin3 = 29;
+int echoPin3 = 28;
 int trigPin4 = 27;
 int echoPin4 = 26;
-int trigPin2 = 29;
-int echoPin2 = 28;
-int trigPin1 = 32;
-int echoPin1 = 33;
+int trigPin2 = 30;
+int echoPin2 = 31;
+
 
 int button = 12;
 int piezo = 13;
@@ -155,14 +146,11 @@ void loop() {
     start_motor(2);
     tone(piezo, 1000, 800);
   }
-  //Serial.println(press_button);
   //main function of driving and turning if it is reqeured
   //функция езды по маршруту работает при условии зажатой кнопкиб незаконченного маршрута,отсутствия препятствий и светофора
   if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false and press_button == true /*and obstacle == false and red_color == false*/) {
     tmr_route = millis();
-    // Serial.println("2");
     encoder_work(counter);
-    //Serial.println("3");
     counter += 1;
 
     if (counter * step >= way[count_route]) {
@@ -197,8 +185,9 @@ void loop() {
   }
   //function for avoiding obstacles
   //функция обнаружения препятствий работает при зажатой кнопкиб незаконченного маршрута
-   /*if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {
+   if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {
      tmr_ultrasound = millis();
+     Serial.println("3");
      if (Ultrasound(trigPin3, echoPin3) > 100) {
        obstacle = false;
        turning(0);
@@ -210,7 +199,9 @@ void loop() {
          tone(piezo, 1500, 500);
          sound = true;
        }
+       Serial.println("4");
        int right_ultrasound = Ultrasound(trigPin4, echoPin4);
+       Serial.println("2");
        int left_ultrasound = Ultrasound(trigPin2, echoPin2);
        if (right_ultrasound >= left_ultrasound) {
          turning(1);
@@ -218,7 +209,7 @@ void loop() {
          turning(-1);
        }
      }
-    }*/
+    }
   //funcrion of recognising traffic lights
   //функция светофора работает при незаконченном маршруте и зажатой кнопки
   /*if (millis() - tmr_trafficlight >= TRAFFICLIGHT_PERIOD and end_route == false and press_button == true) {
@@ -301,7 +292,6 @@ void turning(int where) {
 void encoder_work(int counter) {
   int flag = digitalRead(encoder);
   while (flag == digitalRead(encoder)) {
-    Serial.println(flag);
     delay(0);
   }
   counter += 1;
@@ -312,15 +302,18 @@ void encoder_work(int counter) {
 //считывание значений с ультразвука и перевод в см
 int Ultrasound(int trigPin, int echoPin) {
   int duration, distance;
-  // для большей точности установим значение LOW на пине Trig
   digitalWrite(trigPin, LOW);
-  delayMicroseconds(2); // Теперь установим высокий уровень на пине Trig
-  digitalWrite(trigPin, HIGH);// Подождем 10 μs
+  delayMicroseconds(2); 
+  digitalWrite(trigPin, HIGH);
+
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH); // Рассчитаем расстояние
-  distance = duration / 58; // Выведем значение в Serial Monitor
 
+  Serial.println(millis());
+  duration = pulseIn(echoPin, HIGH); 
+  distance = duration / 58;
+
+  Serial.println(millis());
   return distance;
 }
 

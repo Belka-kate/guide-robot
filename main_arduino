@@ -14,6 +14,8 @@ uint32_t tmr_trafficlight;
 
 int count_route = 1; //for following the route
 int counter = 0; //inner
+int move;
+int turn;
 
 //books for logic of working
 bool end_route = false;
@@ -126,44 +128,44 @@ void setup() {
 
   //wait for sign to start, settings to start and start moving
   press_button = true;
-  turning(0);
+  turning(2);
   Serial.println(rotate.read());
 
   while (digitalRead(button) == 0) {
-
     delay(0);
   }
   start_motor(3);
 }
 
 void loop() {
-  change_speed(); //changing speed according to the значения потенциометра
-
-  //checking if route is over or not, stopping and giving a signal
-  if (count_route >= sizeof(way) / sizeof(way[0])) {
-    end_route = true;
-    turning(0);
-    start_motor(2);
-    tone(piezo, 1000, 800);
-  }
+  change_speed(); //changing speed according to the значения потенциометр
   //main function of driving and turning if it is reqeured
   //функция езды по маршруту работает при условии зажатой кнопкиб незаконченного маршрута,отсутствия препятствий и светофора
   if (millis() - tmr_route >= ROUTE_PERIOD and end_route == false and press_button == true /*and obstacle == false and red_color == false*/) {
-    tmr_route = millis();
-    encoder_work(counter);
-    counter += 1;
-
-    if (counter * step >= way[count_route]) {
-      if (count_route % 2 == 1) {
-        turning(0);
-      } else if (way[count_route + 1] > 0) {
-        turning(1);
-      }
-      else {
-        turning(-1);
-      }
-      count_route += 1;
+    if (Serial.  available() > 0) {
+      data = Serial.readStringUntil('\n');
+      Serial.print("You sent me: ");
+      Serial.println(data);
     }
+    // 3 - forward 1 - backward 2 - stop
+    //1 - left 2 - forward 3 - right
+    if(data[0] == "3"){
+      move = 3;
+    }else if(data[0]=="1"){
+      move = 1;
+    }else{
+      move = 2;
+    }
+
+    if(data[2] == "3"){
+      turn = 3;
+    }else if(data[2]=="1"){
+      turn = 1;
+    }else{
+      turn = 2;
+    } 
+    turning(turn);
+    start_motor(move);
   }
 
 
@@ -178,7 +180,7 @@ void loop() {
       tone(piezo, 1000);
     } else {
       press_button = true;
-      start_motor(3);
+      start_motor(move);
       noTone(piezo);
 
     }
@@ -187,52 +189,20 @@ void loop() {
   //функция обнаружения препятствий работает при зажатой кнопкиб незаконченного маршрута
    if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {
      tmr_ultrasound = millis();
-     Serial.println("3");
      if (Ultrasound(trigPin3, echoPin3) > 100) {
        obstacle = false;
-       turning(0);
-
        sound = false;
+       start_motor(move);
      } else {
        obstacle = true;
+       start_motor(2);
        if (sound == false) {
          tone(piezo, 1500, 500);
          sound = true;
        }
-       Serial.println("4");
-       int right_ultrasound = Ultrasound(trigPin4, echoPin4);
-       Serial.println("2");
-       int left_ultrasound = Ultrasound(trigPin2, echoPin2);
-       if (right_ultrasound >= left_ultrasound) {
-         turning(1);
-       } else {
-         turning(-1);
-       }
      }
     }
-  //funcrion of recognising traffic lights
-  //функция светофора работает при незаконченном маршруте и зажатой кнопки
-  /*if (millis() - tmr_trafficlight >= TRAFFICLIGHT_PERIOD and end_route == false and press_button == true) {
-    tmr_trafficlight = millis();
-    if (Serial.  available() > 0) {
-      data = Serial.readStringUntil('\n');
-      Serial.print("You sent me: ");
-      Serial.println(data);
-      //3 - red 2 - green 1 - nothing
-      if (data == "3") {
-        start_motor(2);
-        red_color = true;
-        if (sound1 == false) {
-          tone(piezo, 1300, 100);
-          sound1 = true;
-        }
-      } else {
-        start_motor(3);
-        red_color = false;
-        sound1 = false;
-      }
-    }
-    }*/
+  
 }
 
 //remaking angle to the suitable format
@@ -251,14 +221,15 @@ double extra_angel(double a) {
 }
 
 //function for controlling engines
+
 //3 - forward 1 - backward 2 - stop
 void start_motor(int back_or_not) {
   int a, b;
-  if (back_or_not == 3) {
+  if (back_or_not == 1) {
     a = 0;
     b = 1;
   }
-  else if (back_or_not == 1) {
+  else if (back_or_not == 3) {
     b = 0;
     a = 1;
   }
@@ -277,11 +248,12 @@ void start_motor(int back_or_not) {
 }
 
 //function for turning
-//-1 - left 80 0 - forward 110 1 - right 140
+
+//1 - left 80 2 - forward 110 3 - right 140
 void turning(int where) {
-  if (where == -1) {
+  if (where == 1) {
     rotate.write(80);
-  } else if (where == 0) {
+  } else if (where == 2) {
     rotate.write(110);
   } else {
     rotate.write(140);

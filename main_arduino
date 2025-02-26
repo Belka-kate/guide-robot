@@ -14,6 +14,7 @@ uint32_t tmr_trafficlight;
 
 int count_route = 1; //for following the route
 int counter = 0; //inner
+double* way;
 
 //books for logic of working
 bool end_route = false;
@@ -30,27 +31,22 @@ float step = 0.525;
 String data;
 
 //create path by angle distance angle...
-double way[] = {0, 1000, 0};
 
 //pins for motors
 int encoder = 49;
-
 
 int motor11 = 41;
 int motor12 = 39;
 int motor21 = 37;
 int motor22 = 35;
 
-
 int ena1 = 4; //speed
 int enb1 = 5;
-
 
 int motor31 = 8;
 int motor32 = 9;
 int motor42 = 10;
 int motor41 = 11;
-
 
 int ena2 = 6;
 int enb2 = 3;
@@ -69,9 +65,129 @@ int echoPin4 = 26;
 int trigPin2 = 30;
 int echoPin2 = 31;
 
-
 int button = 12;
 int piezo = 13;
+
+void start_motor(int back_or_not) {
+  int a, b;
+  if (back_or_not == 3) {
+    a = 0;
+    b = 1;
+  }
+  else if (back_or_not == 1) {
+    b = 0;
+    a = 1;
+  }
+  else {
+    a = 0;
+    b = 0;
+  }
+  digitalWrite(motor12, a);
+  digitalWrite(motor11, b);
+  digitalWrite(motor22, a);
+  digitalWrite(motor21, b);
+  digitalWrite(motor32, a);
+  digitalWrite(motor31, b);
+  digitalWrite(motor42, a);
+  digitalWrite(motor41, b);
+}
+
+//function for turning
+//-1 - left 80 0 - forward 110 1 - right 140
+void turning(int where) {
+  if (where == -1) {
+    rotate.write(80);
+  } else if (where == 0) {
+    rotate.write(110);
+  } else {
+    rotate.write(140);
+  }
+}
+
+double extra_angel(double a) {
+  double r;
+  if (a < 0) {
+    r = 48;
+    a = a * -1;
+  }
+  else {
+    r = 31;
+  }
+  //in sm
+  a = radians(a) / 2;
+  return r * tan(a);
+}
+
+//checking by encoder how the path goes
+void encoder_work(int counter) {
+  int flag = digitalRead(encoder);
+  while (flag == digitalRead(encoder)) {
+    delay(0);
+  }
+  counter += 1;
+  return;
+}
+
+
+//считывание значений с ультразвука и перевод в см
+int Ultrasound(int trigPin, int echoPin) {
+  int duration, distance;
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2); 
+  digitalWrite(trigPin, HIGH);
+
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH); 
+  distance = duration / 58;
+  return distance;
+}
+
+void change_speed() { // считывает значение с потенциометра, преобразует его в нужный формат и
+  //меняет скорость у всех моторов
+  int res = analogRead(pin_res);
+  int sp = map(res, 0, 1023, 0, 255);
+  analogWrite(ena1, sp);
+  analogWrite(ena2, sp);
+  analogWrite(enb1, sp);
+  analogWrite(enb2, sp);
+}
+
+double* getDoubleArray(const String &input, int &size) {
+    static double outputArray[10]; // Static array to hold the results
+    size = 0; // Initialize size
+
+    int startIndex = 0;
+    int endIndex = 0;
+
+    while ((endIndex = input.indexOf(' ', startIndex)) != -1) {
+        // Extract substring and convert to double
+        String numberString = input.substring(startIndex, endIndex);
+        outputArray[size++] = numberString.toDouble();
+        startIndex = endIndex + 1; // Move to the next number
+    }
+
+    // Handle the last number (after the last space)
+    if (startIndex < input.length()) {
+        String numberString = input.substring(startIndex);
+        outputArray[size++] = numberString.toDouble();
+    }
+    
+    for (int i = 0; i <= sizeof(outputArray) / sizeof(outputArray[0]) - 1; i += 1) {
+      if (i % 2 == 1) {
+        outputArray[i] = outputArray[i] - extra_angel(outputArray[i - 1]) - extra_angel(outputArray[i + 1]);
+      } else {
+        if (outputArray[i + 1] < 0) {
+          outputArray[i] = R1 * radians(-1 * outputArray[i]);
+        }
+        else {
+          outputArray[i] = R2 * radians(outputArray[i]);
+        }
+      }
+    }
+    
+    return outputArray; // Return the pointer to the array
+}
 
 
 void setup() {
@@ -111,7 +227,7 @@ void setup() {
   analogWrite(enb2, 130);
 
   //remaking way for better understanding
-  for (int i = 0; i <= sizeof(way) / sizeof(way[0]) - 1; i += 1) {
+  /*for (int i = 0; i <= sizeof(way) / sizeof(way[0]) - 1; i += 1) {
     if (i % 2 == 1) {
       way[i] = way[i] - extra_angel(way[i - 1]) - extra_angel(way[i + 1]);
     } else {
@@ -122,12 +238,11 @@ void setup() {
         way[i] = R2 * radians(way[i]);
       }
     }
-  }
+  }*/
 
   //wait for sign to start, settings to start and start moving
   press_button = true;
   turning(0);
-  Serial.println(rotate.read());
 
   while (digitalRead(button) == 0) {
 
@@ -138,13 +253,37 @@ void setup() {
 
 void loop() {
   change_speed(); //changing speed according to the значения потенциометра
+  String x = String(count_route) + String(counter*step);
+  Serial.println(x);
+  if(end_route == true){
+    int Size = Serial.readStringUntil('\n').toInt();
 
+    if(Size == -1){
+      turning(0);
+      start_motor(2);
+      tone(piezo, 1000, 800);
+    }
+    
+    String path = Serial.readStringUntil('\n');
+    while (Size == 0){
+      delay(0);
+      Size = Serial.readStringUntil('\n').toInt();
+      if(Size == -1){
+        turning(0);
+        start_motor(2);
+        tone(piezo, 1000, 800);
+        break;
+    }
+      path = Serial.readStringUntil('\n');
+    }
+     way = getDoubleArray(path, Size);
+    end_route = false;
+  }
+  
   //checking if route is over or not, stopping and giving a signal
   if (count_route >= sizeof(way) / sizeof(way[0])) {
     end_route = true;
-    turning(0);
     start_motor(2);
-    tone(piezo, 1000, 800);
   }
   //main function of driving and turning if it is reqeured
   //функция езды по маршруту работает при условии зажатой кнопкиб незаконченного маршрута,отсутствия препятствий и светофора
@@ -187,7 +326,7 @@ void loop() {
   //функция обнаружения препятствий работает при зажатой кнопкиб незаконченного маршрута
    if (millis() - tmr_ultrasound >= ULTRASOUND_PERIOD and end_route == false and press_button == true) {
      tmr_ultrasound = millis();
-     Serial.println("3");
+
      if (Ultrasound(trigPin3, echoPin3) > 100) {
        obstacle = false;
        turning(0);
@@ -199,9 +338,7 @@ void loop() {
          tone(piezo, 1500, 500);
          sound = true;
        }
-       Serial.println("4");
        int right_ultrasound = Ultrasound(trigPin4, echoPin4);
-       Serial.println("2");
        int left_ultrasound = Ultrasound(trigPin2, echoPin2);
        if (right_ultrasound >= left_ultrasound) {
          turning(1);
@@ -233,96 +370,4 @@ void loop() {
       }
     }
     }*/
-}
-
-//remaking angle to the suitable format
-double extra_angel(double a) {
-  double r;
-  if (a < 0) {
-    r = 48;
-    a = a * -1;
-  }
-  else {
-    r = 31;
-  }
-  //in sm
-  a = radians(a) / 2;
-  return r * tan(a);
-}
-
-//function for controlling engines
-//3 - forward 1 - backward 2 - stop
-void start_motor(int back_or_not) {
-  int a, b;
-  if (back_or_not == 3) {
-    a = 0;
-    b = 1;
-  }
-  else if (back_or_not == 1) {
-    b = 0;
-    a = 1;
-  }
-  else {
-    a = 0;
-    b = 0;
-  }
-  digitalWrite(motor12, a);
-  digitalWrite(motor11, b);
-  digitalWrite(motor22, a);
-  digitalWrite(motor21, b);
-  digitalWrite(motor32, a);
-  digitalWrite(motor31, b);
-  digitalWrite(motor42, a);
-  digitalWrite(motor41, b);
-}
-
-//function for turning
-//-1 - left 80 0 - forward 110 1 - right 140
-void turning(int where) {
-  if (where == -1) {
-    rotate.write(80);
-  } else if (where == 0) {
-    rotate.write(110);
-  } else {
-    rotate.write(140);
-  }
-}
-
-//checking by encoder how the path goes
-void encoder_work(int counter) {
-  int flag = digitalRead(encoder);
-  while (flag == digitalRead(encoder)) {
-    delay(0);
-  }
-  counter += 1;
-  return;
-}
-
-
-//считывание значений с ультразвука и перевод в см
-int Ultrasound(int trigPin, int echoPin) {
-  int duration, distance;
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2); 
-  digitalWrite(trigPin, HIGH);
-
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  Serial.println(millis());
-  duration = pulseIn(echoPin, HIGH); 
-  distance = duration / 58;
-
-  Serial.println(millis());
-  return distance;
-}
-
-void change_speed() { // считывает значение с потенциометра, преобразует его в нужный формат и
-  //меняет скорость у всех моторов
-  int res = analogRead(pin_res);
-  int sp = map(res, 0, 1023, 0, 255);
-  analogWrite(ena1, sp);
-  analogWrite(ena2, sp);
-  analogWrite(enb1, sp);
-  analogWrite(enb2, sp);
 }

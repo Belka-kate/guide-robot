@@ -1,5 +1,5 @@
 #for launching u need to call function get_route_details(api, start_point, last_point)
-# the result is str which is suitable for arduino code
+# the result is str which is suitable for arduino code and int as number of points
 
 import requests
 from math import sqrt
@@ -28,8 +28,8 @@ def get_route_details(api_key, point_a, point_b):
                     for step in leg['steps']:
                         if 'polyline' in step and 'points' in step['polyline']:
                             polyline_points.extend(step['polyline']['points'])
-            route = construct_route(polyline_points)
-            return route
+            route, counter = construct_route(polyline_points)
+            return route, counter
         else:
             print("Маршрут не найден.")
 
@@ -72,16 +72,18 @@ def calculate_turn_angle(point1, point2, point3):
     return '%.2f'%angle_deg
 
 def construct_route(polyline_points):
+    counter = 3
     length_route = calculate_distance(polyline_points)
     route = "0 " + str(length_route[0]) + " "
     for i in range(1, len(polyline_points)-1):
         angel = calculate_turn_angle(polyline_points[i-1], polyline_points[i], polyline_points[i+1])
         route += str(angel) + " " + str(length_route[i]) + " "
-    route += "0"
-    return route
+        counter += 2
+    route += str(length_route[-1])+" 0"
+    return route, counter
 api_key = 'e8ba2603-9003-491a-82b9-726a443d1b7e'  # Замените на ваш реальный API-ключ
 point_a = (56.828345, 60.647565)  # Координаты первой точки (например, Москва)
 point_b = (56.817326, 60.639254)  # Координаты второй точки (например, другая точка в Москве)
 
-route = get_route_details(api_key, point_a, point_b)
-print(route)
+route, counter = get_route_details(api_key, point_a, point_b)
+print(route, counter)

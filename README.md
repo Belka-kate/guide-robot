@@ -1,14 +1,24 @@
-# guide-robot
-Guide robot for visually impaired people
-The main goal is replace guide dogs, what means robot must orientate indoors and outdoors, be reliable, communicate with the user
+# Guide Robot for Visually Impaired People
 
-Logic of wroking:
--User sets up the place to start and finish in the application
--When user takes the handle, sensor recognizes it and robot starts moving
--With help of GPS navigation robot makes the route
--Machine vision recognize the color of traffic lights and help to cross road safely
--Sensors discover and avoid obstacles
--Robot signs abot reaching destination
+A prototype assistive robot designed to replace guide dogs 
+for navigation in indoor and outdoor environments.
 
-This code is only for the robot so for correct working it requires to be loaded to the robot
+## Features
+- GPS-based route planning between user-defined start and destination
+- Computer vision for traffic light recognition and safe road crossing
+- Ultrasonic/IR obstacle detection and avoidance
+- Handle-mounted sensor to detect user grip and start navigation
+- Companion mobile app for route setup
 
+## Hardware
+- Raspberry Pi (main computing unit)
+- Arduino (motor and sensor control)
+- 3D-printed chassis (custom design)
+- Camera module, GPS module, ultrasonic sensors
+
+## Stack
+Python, OpenCV, Arduino C++
+
+## Status
+Prototype tested at a Russian Railways station (2024).
+Presented at IEYI 2024 (Silver Medal) and Big Challenges 2024/25.
